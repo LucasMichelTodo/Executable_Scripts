@@ -53,7 +53,7 @@ sample_E5
 
 # Folder for Outputs
 >Out_folder
-Difpeaks_Test_01
+Difpeaks_Test
 
 # Number of processors to use
 >Threads
@@ -69,7 +69,7 @@ Difpeaks_Test_01
 
 # Minimum Probability Difference (between samples)
 >MinProbDif
-0.1
+0.3
 
 #Peak Merge Distance
 >Merge
