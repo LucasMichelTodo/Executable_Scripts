@@ -1,0 +1,140 @@
+###################################################################
+###                ChIP-Seq Pipeline: by Lucas MT               ###
+###################################################################
+
+# Fill in this form to run the pipeline. Lines starting with ">"
+# denote entries to fill. Entries must be written one per line.
+# Lines starting with '#' are for comments, they won't affect the script.
+# Empty lines won't affect the script either.
+
+########################## Raw Data ###############################
+
+# Take special care in the order of the samples!
+
+>Reads_folder
+/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/Raw_Data/
+
+# IPs and their corresponding inputs must be in the same order!
+>IPs_Read1s
+NCV26_me_R1_subset1000.fq
+NCV28_me_R1_subset1000.fq
+
+>IPs_Read2s
+NCV26_me_R2_subset1000.fq
+NCV28_me_R2_subset1000.fq
+
+>Inputs_Read1s
+NCV27_in_R1_subset1000.fq
+NCV29_in_R1_subset1000.fq
+
+>Inputs_Read2s
+NCV27_in_R2_subset1000.fq
+NCV29_in_R2_subset1000.fq
+
+# Must be in the same order as Reads files!
+>IPs_names
+F12_me3_+cho
+F12_me3_-cho
+
+>Inputs_names
+F12_input_+cho
+F12_input_-cho
+
+
+########################### Others ################################
+
+>Out_folder
+ChIP_Pipe_Test_99
+
+# Number of processors to use
+>Threads
+8
+
+############################ Steps ################################
+
+# Define which steps of the pipeline to run. Set each entriy to
+# 'yes' or 'no'. Useful if the pipeline fails at some point and
+# has to be re-run (and you don't want to re-run all steps).
+
+# Reads Cleaning
+>Run_BBDUK
+yes
+
+# Quality Control
+>Run_FastQC
+yes
+
+# Screening of other organisms
+>Run_Fastq_Screen
+yes
+
+# Alignment
+>Run_Bowtie2
+yes
+
+# Remove Duplicates
+>Run_GATK
+yes
+
+# Make tracks 'Raw'
+>Run_BamCoverage
+yes
+
+# Make tracks Normalized by Input
+>Run_BamCompare
+yes
+
+
+###################### Program Parameters #########################
+
+#-------------------------- BBDUK ---------------------------------
+>BBDUK_path
+bbduk.sh
+
+>BBDUK_params
+ktrim=r k=22 mink=6 overwrite=t
+
+>BBDUK_ref
+/home/lucas/Programs/bbmap/resources/adapters.fa
+
+#-------------------------- FastQC --------------------------------
+>FastQC_path
+fastqc
+
+#----------------------- Fastq_Screen -----------------------------
+>Fastq_Screen_path
+fastq_screen
+
+#-------------------------- MultiQC -------------------------------
+>MultiQC_path
+multiqc
+
+#------------------------- Bowtie2 --------------------------------
+>Bowtie2_path
+bowtie2
+
+>Bowtie2_params
+--very-sensitive --local -5 4 -3 4 -I 50 -X 2000 -x /home/lucas/Programs/bowtie2-2.3.0-legacy/Pf3D7
+
+#------------------------- Samtools -------------------------------
+>Samtools_path
+samtools
+
+#------------------------ GATK Suite ------------------------------
+>GATK_path
+java -jar /home/lucas/Programs/gatk-4.1.9.0/gatk-package-4.1.9.0-local.jar
+
+#------------------------- DeepTools ------------------------------
+# 'Raw' tracks
+>BamCoverage_path
+bamCoverage
+
+>BamCoverage_params
+--outFileFormat bedgraph --normalizeUsing RPKM -bs 10 --smoothLength 200
+
+#Normalized by input tracks
+>BamCompare_path
+bamCompare
+
+>BamCompare_params
+--outFileFormat bedgraph --scaleFactorsMethod None --normalizeUsing RPKM -bs 10 --smoothLength 200 --pseudocount 10 -of bedgraph

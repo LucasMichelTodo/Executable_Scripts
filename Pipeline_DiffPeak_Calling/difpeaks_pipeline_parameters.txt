@@ -1,0 +1,80 @@
+###################################################################
+###       Differential Peak Calling Pipeline: by Lucas MT       ###
+###################################################################
+
+# Fill in this form to run the pipeline. Lines starting with ">"
+# denote entries to fill. Entries must be written one per line.
+# Lines starting with '#' are for comments, they won't affect the script.
+# Empty lines won't affect the script either.
+
+########################## Input Data ###############################
+
+# Take special care in the order of the samples!
+# Samples go in pairs, sample 1 will be compared to sample 2
+
+## Peak files
+>Peaks_dir
+/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/Peak_Calling_MACS2/
+
+>Peaks_1
+1.2B_me_Macspeaks_peaks.narrowPeak
+A7K9_me_Macspeaks_peaks.narrowPeak
+
+>Peaks_2
+10G_me_Macspeaks_peaks.narrowPeak
+E5K9_me_Macspeaks_peaks.narrowPeak
+
+## Coverage files
+>Coverage_dir
+/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/RPKMs_NormInput_noDup_bs10_smth_200_pseudo_10/
+
+>Coverages_1
+1.2B_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+A7K9_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+
+>Coverages_2
+10G_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+E5K9_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+
+## Sample names (used for outputs)
+>Names_1
+sample_12B
+sample_A7
+
+>Names_2
+sample_10G
+sample_E5
+
+## Other Inputs
+>Genome
+/mnt/Disc4T/Projects/Miniprojects/Custom_Differential_Peak_Calling/Pf3D7.genome
+
+####################### Settable Parameters #######################
+
+# Folder for Outputs
+>Out_folder
+Difpeaks_Test_01
+
+# Number of processors to use
+>Threads
+8
+
+# Window Size
+>Win_Size
+100
+
+# Step Size
+>Step
+100
+
+# Minimum Probability Difference (between samples)
+>MinProbDif
+0.1
+
+#Peak Merge Distance
+>Merge
+500
+
+# Peak Minimum Length
+>MinLen
+1000
