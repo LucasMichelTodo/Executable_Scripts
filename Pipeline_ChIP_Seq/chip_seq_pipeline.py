@@ -7,19 +7,25 @@ from datetime import datetime
 from collections import defaultdict
 import argparse
 import time
+import pathlib
 
 #### FUNCTIONS ####
 
 ## Pre-Processing
 
+def get_extension(filename):
+    '''
+    Get extension from a filename. It can have up to 2 extensions,
+    a filetype extension and optionally a compressing extension (e.g., '.gz')
+    '''
+    p = pathlib.Path(filename)
+    s = p.suffixes[-2:]
+    return(''.join(s))
+
 def call_BBDUK(program_path, in1, in2, ref, outfolder='./', params=''):
 
     if not outfolder.endswith('/'): outfolder = outfolder+'/'
-
-    extension = '.'+in1.rsplit('.', 1)[-1]
-    # Deal with compressed files
-    if extension in ['.gz', '.zip', '.rar']:
-        extension = '.'+ '.'.join(in1.rsplit('.', 2)[1:])
+    extension = get_extension(in1)
 
     out1 = outfolder + in1.rsplit("/", 1)[1].replace(extension, "_clean.fq")
     out2 = outfolder + in2.rsplit("/", 1)[1].replace(extension, "_clean.fq")
@@ -412,8 +418,8 @@ def pipe_main(input_file):
         all_reads1 = input_d['IPs_Read1s']+input_d['Inputs_Read1s']
         all_reads2 = input_d['IPs_Read2s']+input_d['Inputs_Read2s']
         all_names = input_d['IPs_names']+input_d['Inputs_names']
-        reads1 = [indir+f.replace('.'+f.rsplit('.', 1)[1], '_clean.fq') for f in all_reads1]
-        reads2 = [indir+f.replace('.'+f.rsplit('.', 1)[1], '_clean.fq') for f in all_reads2]
+        reads1 = [indir+f.replace(get_extension(f), '_clean.fq') for f in all_reads1]
+        reads2 = [indir+f.replace(get_extension(f), '_clean.fq') for f in all_reads2]
 
         bowtie2_align_pipe(
             input_d['Bowtie2_path'], input_d['Samtools_path'],
