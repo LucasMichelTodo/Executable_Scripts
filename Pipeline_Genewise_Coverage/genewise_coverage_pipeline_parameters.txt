@@ -1,0 +1,82 @@
+###################################################################
+###           Gene-Wise Coverage Pipeline: by Lucas MT          ###
+###################################################################
+
+# Fill in this form to run the pipeline. Lines starting with ">"
+# denote entries to fill. Entries must be written one per line.
+# Lines starting with '#' are for comments, they won't affect the script.
+# Empty lines won't affect the script either.
+
+########################### Inputs ################################
+
+# Reference genome annotations in '.gff' format
+>Ref_Gff
+/home/lucas/ISGlobal/Projects/Alba/ChIP_Seqs_01_23_edited_genomes/Custom_Genomes/Genome_DD/PlasmoDB-61_Pfalciparum3D7_edited_DD_final.gff
+
+# Reference genome sequence in '.fasta' format
+>Ref_Fa
+/home/lucas/ISGlobal/Projects/Alba/ChIP_Seqs_01_23_edited_genomes/Custom_Genomes/Genome_DD/genome_DD.fa
+
+##### Sample files: as always, remeber to maintain the same order for the different files of the same samples!
+
+# Coverage files dir
+>Cov_dir
+/home/lucas/ISGlobal/Projects/Alba/ChIP_Seqs_01_23_edited_genomes/RPKMs_NormInput
+
+# Coverage files
+>Cov_files
+chip_00160_APC13_genomeDD_q5_sort_noDup_rpkm_normInput_bs10_smth200_pseudo1.bdg
+chip_00162_APC15_genomeDD_q5_sort_noDup_rpkm_normInput_bs10_smth200_pseudo1.bdg
+chip_00016_C2_me_q5_sort_noDup_normInput.bdg
+
+# Sample names (for output)
+>Sample_names
+chip_00160_APC13_genomeDD
+chip_00162_APC15_genomeDD
+chip_00016_C2_me_genomeDD
+
+#################### Settable Parameters ##########################
+
+>Out_folder
+Genewise_Pipe
+
+# Number of processors to use
+>Threads
+8
+
+# List (one per line) of GFF features to use for annotation
+>GeneTypes
+protein_coding_gene
+ncRNA_gene
+lncRNA
+pseudogene
+# Other non-used features: rRNA, snoRNA, snRNA, tRNA, ncRNA
+
+# Number of bp from the upstream 5' regulatory regions to consider when calculating coverage (counted from the TSS)
+>Overlap_5p
+1000
+
+# Number of bp from the coding sequence to consider when calculating coverage
+>Overlap_cds
+500
+
+############################ Steps ################################
+
+# Define which steps of the pipeline to run. Set each entriy to
+# 'yes' or 'no'. Useful if the pipeline fails at some point and
+# has to be re-run (and you don't want to re-run all steps).
+
+# Generate a new reference for gene-wise annotation
+>Run_BuildReference
+no
+
+>Run_BuildBedOverlap
+no
+
+>Run_CrossCoverage
+yes
+
+>Run_MakeTable
+yes
+
+
