@@ -3,7 +3,9 @@
 ###################################################################
 
 # Fill in this form to run the pipeline. Lines starting with ">"
-# denote entries to fill. Entries must be written one per line.
+# denote entries to fill (parameters). Entries must be written one per line.
+# All entries must be filled in!
+
 # Lines starting with '#' are for comments, they won't affect the script.
 # Empty lines won't affect the script either.
 

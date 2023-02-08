@@ -12,6 +12,7 @@ import pandas as pd
 from itertools import repeat
 import argparse
 from collections import defaultdict
+import pathlib as pth
 
 ## Functions
 
@@ -80,14 +81,14 @@ def input_parser(input_file):
 def get_differential_peaks(input_file):
 
     input_d = input_parser(input_file)
-    out_dir = input_d['Out_folder']
-    if not out_dir.endswith('/'): out_dir = out_dir+'/'
-    os.makedirs(out_dir, exist_ok=True)
-    input_d = input_parser(input_file)
-    #print(input_d)
 
-    peaksdir = input_d['Peaks_dir']
-    covdir = input_d['Coverage_dir']
+    ## Paths
+    out_dir = pth.Path(input_d['Out_folder']).resolve()
+    peaksdir = pth.Path(input_d['Peaks_dir']).resolve()
+    covdir = pth.Path(input_d['Coverage_dir']).resolve()
+    os.makedirs(out_dir, exist_ok=True)
+
+    ## Others
     peaks1, peaks2 = input_d['Peaks_1'], input_d['Peaks_2']
     covs1, covs2 = input_d['Coverages_1'], input_d['Coverages_2']
     pfxs1, pfxs2 = input_d['Names_1'], input_d['Names_2']
@@ -117,21 +118,23 @@ def get_differential_peaks(input_file):
     names = zip(pfxs1, pfxs2)
 
     for peaks, covs, names in zip(peaks, covs, names):
-        peakfile1, peakfile2 = peaksdir+peaks[0], peaksdir+peaks[1]
-        covfile1, covfile2 = covdir+covs[0], covdir+covs[1]
+        peakfile1 = peaksdir.joinpath(peaks[0])
+        peakfile2 = peaksdir.joinpath(peaks[1])
+        covfile1 = covdir.joinpath(covs[0])
+        covfile2 = covdir.joinpath(covs[1])
         prefix1, prefix2 = names[0], names[1]
 
         print(f'\nComparing samples: {prefix1} vs {prefix2}\n')
-        outfld = out_dir+prefix1+'_vs_'+prefix2
+        outfld = out_dir.joinpath(prefix1+'_vs_'+prefix2)
+
         ## Create folders for output
         os.makedirs(outfld, exist_ok = True)
-        if not outfld.endswith('/'): outfld = outfld+'/'
-        os.makedirs(outfld+'Data/', exist_ok = True)
-        os.makedirs(outfld+'Data/Common_Coverage/', exist_ok = True)
-        os.makedirs(outfld+'Data/Common_Peaks/', exist_ok = True)
-        os.makedirs(outfld+'Data/Plots/', exist_ok = True)
-        os.makedirs(outfld+'Data/Window_Coverage/', exist_ok = True)
-        os.makedirs(outfld+'Data/PreFilter_Difpeaks/', exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/'), exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/Common_Coverage/'), exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/Common_Peaks/'), exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/Plots/'), exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/Window_Coverage/'), exist_ok = True)
+        os.makedirs(outfld.joinpath('Data/PreFilter_Difpeaks/'), exist_ok = True)
 
         ## Generate GaussianMixture distribution with 2 components for coverage in peaks
         ## Peaks coverage
@@ -157,25 +160,26 @@ def get_differential_peaks(input_file):
         gm2 = GaussianMixture(n_components=2).fit(cov_peaks2.reshape(-1, 1))
 
         suffix = '_peak_coverage_fit.png'
-        plot_gaussian_mixture(cov_peaks1, gm1, f'{outfld}Data/Plots/{prefix1}{suffix}')
-        plot_gaussian_mixture(cov_peaks2, gm2, f'{outfld}Data/Plots/{prefix2}{suffix}')
-        plot_components(cov_peaks1, gm1, f'{outfld}Data/Plots/{prefix1}_components_cdf.png')
-        plot_components(cov_peaks2, gm2, f'{outfld}Data/Plots/{prefix2}_components_cdf.png')
+
+        plot_gaussian_mixture(cov_peaks1, gm1, f'{outfld}/Data/Plots/{prefix1}{suffix}')
+        plot_gaussian_mixture(cov_peaks2, gm2, f'{outfld}/Data/Plots/{prefix2}{suffix}')
+        plot_components(cov_peaks1, gm1, f'{outfld}/Data/Plots/{prefix1}_components_cdf.png')
+        plot_components(cov_peaks2, gm2, f'{outfld}/Data/Plots/{prefix2}_components_cdf.png')
 
         ## Create window reference
         print('Creating windowed coverage...')
         suffix = '_window_coverage.bdg'
         win_ref = create_window_ref(window_size, genome_file, stepsize)
-        win_cov1 = win_ref.map(cf1, c=4, o='mean').saveas(f'{outfld}Data/Window_Coverage/{prefix1}{suffix}')
-        win_cov2 = win_ref.map(cf2, c=4, o='mean').saveas(f'{outfld}Data/Window_Coverage/{prefix2}{suffix}')
+        win_cov1 = win_ref.map(cf1, c=4, o='mean').saveas(f'{outfld}/Data/Window_Coverage/{prefix1}{suffix}')
+        win_cov2 = win_ref.map(cf2, c=4, o='mean').saveas(f'{outfld}/Data/Window_Coverage/{prefix2}{suffix}')
 
         ## Create join coverage bdg
         print('Creating join coverage bed...')
-        outfile = outfld+f'Data/Common_Coverage/{prefix1}_{prefix2}_common_coverage.bdg'
+        outfile = outfld.joinpath(f'Data/Common_Coverage/{prefix1}_{prefix2}_common_coverage.bdg')
         cmd = ['bedtools', 'unionbedg', '-i',
-               f'{outfld}Data/Window_Coverage/{prefix1}{suffix}',
-               f'{outfld}Data/Window_Coverage/{prefix2}{suffix}',
-               '>', outfile]
+               f'{outfld}/Data/Window_Coverage/{prefix1}{suffix}',
+               f'{outfld}/Data/Window_Coverage/{prefix2}{suffix}',
+               '>', str(outfile)]
         sp.call(' '.join(cmd), shell = True)
         union_bed = pb.BedTool(outfile)
 
@@ -183,8 +187,8 @@ def get_differential_peaks(input_file):
         print('Creating common peaks bed...')
 
         files_to_cross = []
-        str_beds = peakfile1 + ' ' + peakfile2
-        outfile = f'{outfld}Data/Common_Peaks/{prefix1}_{prefix2}_common_peaks.bed'
+        str_beds = str(peakfile1) + ' ' + str(peakfile2)
+        outfile = f'{outfld}/Data/Common_Peaks/{prefix1}_{prefix2}_common_peaks.bed'
         cmd = 'awk \'{print}\' '+f'{str_beds} > {outfile}'
         sp.call(cmd, shell = True)
         common_peaks = pb.BedTool(outfile).sort()
@@ -237,11 +241,11 @@ def get_differential_peaks(input_file):
             common_cov_common_peaks.fn,
             names=['#chrom', 'start', 'stop', 'cov1', 'cov2']
                    )
-        rawout1 = (f'{outfld}Data/PreFilter_Difpeaks/'
+        rawout1 = (f'{outfld}/Data/PreFilter_Difpeaks/'
                    f'difpeaks_{prefix1}over{prefix2}'
                    f'_w{window_size}_s{stepsize}_pd{minprobdif}.bed')
 
-        rawout2 = (f'{outfld}Data/PreFilter_Difpeaks/'
+        rawout2 = (f'{outfld}/Data/PreFilter_Difpeaks/'
                    f'difpeaks_{prefix2}over{prefix1}'
                    f'_w{window_size}_s{stepsize}_pd{minprobdif}.bed')
 
@@ -252,12 +256,12 @@ def get_differential_peaks(input_file):
         rawbed2 = pb.BedTool(rawout2)
 
         ## Merge peaks and filter by length
-        out1 = (f'{outfld}difpeaks_{prefix1}_over_{prefix2}'
+        out1 = (f'{outfld}/difpeaks_{prefix1}_over_{prefix2}'
                 f'_w{window_size}_s{stepsize}_pd{minprobdif}'
                 f'_mg{mergedist}_ml{minlen}'
                 '_difpeaks.bed')
 
-        out2 = (f'{outfld}difpeaks_{prefix2}_over_{prefix1}'
+        out2 = (f'{outfld}/difpeaks_{prefix2}_over_{prefix1}'
                 f'_w{window_size}_s{stepsize}_pd{minprobdif}'
                 f'_mg{mergedist}_ml{minlen}'
                 '_difpeaks.bed')

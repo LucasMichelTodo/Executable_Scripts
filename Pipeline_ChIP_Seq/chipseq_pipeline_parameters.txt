@@ -3,7 +3,9 @@
 ###################################################################
 
 # Fill in this form to run the pipeline. Lines starting with ">"
-# denote entries to fill. Entries must be written one per line.
+# denote entries to fill (parameters). Entries must be written one per line.
+# All entries must be filled in!
+
 # Lines starting with '#' are for comments, they won't affect the script.
 # Empty lines won't affect the script either.
 
@@ -12,7 +14,7 @@
 # Take special care in the order of the samples!
 
 >Reads_folder
-/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/Raw_Data/
+/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/ChIP_Test_Data
 
 # IPs and their corresponding inputs must be in the same order!
 >IPs_Read1s
@@ -44,7 +46,7 @@ F12_input_-cho
 ########################### Others ################################
 
 >Out_folder
-ChIP_Pipe_Test_99
+./ChIP_Pipe_Tests
 
 # Number of processors to use
 >Threads
@@ -58,23 +60,23 @@ ChIP_Pipe_Test_99
 
 # Reads Cleaning
 >Run_BBDUK
-yes
+no
 
 # Quality Control
 >Run_FastQC
-yes
+no
 
 # Screening of other organisms
 >Run_Fastq_Screen
-yes
+no
 
 # Alignment
 >Run_Bowtie2
-yes
+no
 
 # Remove Duplicates
 >Run_GATK
-yes
+no
 
 # Make tracks 'Raw'
 >Run_BamCoverage

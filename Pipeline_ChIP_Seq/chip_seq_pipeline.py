@@ -7,7 +7,7 @@ from datetime import datetime
 from collections import defaultdict
 import argparse
 import time
-import pathlib
+import pathlib as pth
 
 #### FUNCTIONS ####
 
@@ -18,18 +18,19 @@ def get_extension(filename):
     Get extension from a filename. It can have up to 2 extensions,
     a filetype extension and optionally a compressing extension (e.g., '.gz')
     '''
-    p = pathlib.Path(filename)
+    p = pth.Path(filename)
     s = p.suffixes[-2:]
     return(''.join(s))
 
 def call_BBDUK(program_path, in1, in2, ref, outfolder='./', params=''):
 
-    if not outfolder.endswith('/'): outfolder = outfolder+'/'
+    outfolder = pth.Path(outfolder)
     extension = get_extension(in1)
 
-    out1 = outfolder + in1.rsplit("/", 1)[1].replace(extension, "_clean.fq")
-    out2 = outfolder + in2.rsplit("/", 1)[1].replace(extension, "_clean.fq")
-    outm = outfolder + in1.rsplit("/", 1)[1].replace(extension, "_badreads.fq")
+    name1, name2 = pth.Path(in1).name, pth.Path(in2).name
+    out1 = str(outfolder.joinpath(name1)).replace(extension, "_clean.fq")
+    out2 = str(outfolder.joinpath(name2)).replace(extension, "_clean.fq")
+    outm = str(outfolder.joinpath(name1)).replace(extension, "_badreads.fq")
 
     cmd = [
         program_path,
@@ -312,9 +313,22 @@ def pipe_main(input_file):
     #os.chdir('/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/')
     #input_file = './pipeline_parameters.txt'
     input_d = input_parser(input_file)
-    os.makedirs(input_d['Out_folder'], exist_ok=True)
-    input_d = input_parser(input_file)
     #print(input_d)
+
+    ## Paths
+    reads_path = pth.Path(input_d['Reads_folder']).resolve()
+    out_path = pth.Path(input_d['Out_folder']).resolve()
+    os.makedirs(out_path, exist_ok=True)
+
+    ## Check all files exist
+    read1s = [f for f in input_d['IPs_Read1s']+input_d['Inputs_Read1s']]
+    read2s = [f for f in input_d['IPs_Read2s']+input_d['Inputs_Read2s']]
+    all_files = [reads_path.joinpath(x) for x in read1s+read2s]
+    for f in all_files:
+        if not os.path.isfile(f):
+            print(f'Couldn\'t find file:\n{f}\n\n'
+                  'Please re-check params file and re-run the pipeline.\n')
+            sys.exit()
 
     ## Set steps to perform
     clean = True if input_d['Run_BBDUK'] == 'yes' else False
@@ -330,6 +344,7 @@ def pipe_main(input_file):
     for step in steps:
         print(step)
 
+    #### Start Pipeline ####
     ## Clean Reads
     if clean:
         print((
@@ -346,16 +361,14 @@ def pipe_main(input_file):
         for f in input_d['IPs_Read2s']+input_d['Inputs_Read2s']: print(f)
         print('-----')
 
-        outpath = input_d['Out_folder']+'/Clean_Reads/'
+        outpath = out_path.joinpath('Clean_Reads/')
         os.makedirs(outpath, exist_ok=True)
 
-        read1s = [f for f in input_d['IPs_Read1s']+input_d['Inputs_Read1s']]
-        read2s = [f for f in input_d['IPs_Read2s']+input_d['Inputs_Read2s']]
 
         for pair in zip(read1s, read2s):
             print(pair)
-            in1 = input_d['Reads_folder']+pair[0]
-            in2 = input_d['Reads_folder']+pair[1]
+            in1 = str(reads_path.joinpath(pair[0]))
+            in2 = str(reads_path.joinpath(pair[1]))
             call_BBDUK(
                 input_d['BBDUK_path'], in1, in2,
                 input_d['BBDUK_ref'], outpath, input_d['BBDUK_params']
@@ -371,9 +384,9 @@ def pipe_main(input_file):
             '\n'
         ))
 
-        cl_dir = input_d['Out_folder']+'/Clean_Reads/'
-        all_reads = [cl_dir+f for f in os.listdir(cl_dir) if f.endswith('clean.fq')]
-        outdir = input_d['Out_folder']+'/FastQC_Clean/'
+        cl_path = out_path.joinpath('Clean_Reads/')
+        all_reads = [str(cl_path.joinpath(f)) for f in os.listdir(cl_path) if f.endswith('clean.fq')]
+        outdir = str(out_path.joinpath('FastQC_Clean/'))
         os.makedirs(outdir, exist_ok=True)
         call_fastqc(
             input_d['FastQC_path'], all_reads,
@@ -391,9 +404,9 @@ def pipe_main(input_file):
             '\n'
         ))
 
-        cl_dir = input_d['Out_folder']+'/Clean_Reads/'
-        all_reads = [cl_dir+f for f in os.listdir(cl_dir) if f.endswith('clean.fq')]
-        outdir = input_d['Out_folder']+'/Fastq_Screens_Clean/'
+        cl_path = out_path.joinpath('Clean_Reads/')
+        all_reads = [str(cl_path.joinpath(f)) for f in os.listdir(cl_path) if f.endswith('clean.fq')]
+        outdir = str(out_path.joinpath('Fastq_Screens_Clean/'))
         os.makedirs(outdir, exist_ok=True)
         call_fastq_screen(
             input_d['Fastq_Screen_path'], all_reads,
@@ -411,23 +424,23 @@ def pipe_main(input_file):
             '\n'
         ))
 
-        indir = input_d['Out_folder']+'/Clean_Reads/'
-        outdir = input_d['Out_folder']+'/Alignments/'
+        indir = out_path.joinpath('Clean_Reads/')
+        outdir = out_path.joinpath('Alignments/')
         os.makedirs(outdir, exist_ok=True)
 
         all_reads1 = input_d['IPs_Read1s']+input_d['Inputs_Read1s']
         all_reads2 = input_d['IPs_Read2s']+input_d['Inputs_Read2s']
         all_names = input_d['IPs_names']+input_d['Inputs_names']
-        reads1 = [indir+f.replace(get_extension(f), '_clean.fq') for f in all_reads1]
-        reads2 = [indir+f.replace(get_extension(f), '_clean.fq') for f in all_reads2]
+        reads1 = [str(indir.joinpath(f)).replace(get_extension(f), '_clean.fq') for f in all_reads1]
+        reads2 = [str(indir.joinpath(f)).replace(get_extension(f), '_clean.fq') for f in all_reads2]
 
         bowtie2_align_pipe(
             input_d['Bowtie2_path'], input_d['Samtools_path'],
             reads1, reads2, all_names,
-            input_d['Threads'], input_d['Bowtie2_params'], outdir
+            input_d['Threads'], input_d['Bowtie2_params'], str(outdir)+'/'
         )
 
-    ## Remove Duplicates (Optional Step)
+    ## Remove Duplicates
     if deduplicate:
         print((
             '\n'
@@ -436,17 +449,17 @@ def pipe_main(input_file):
             '-------------------------------------------------------------------\n'
             '\n'
         ))
-        indir = input_d['Out_folder']+'/Alignments/'
+        indir = out_path.joinpath('Alignments/')
         all_names = input_d['IPs_names']+input_d['Inputs_names']
         fnames = [n+"_q5_sort.bam" for n in all_names]
-        outdir = indir+'DeDuplicated/'
+        outdir = indir.joinpath('DeDuplicated/')
         os.makedirs(outdir, exist_ok=True)
 
         for fname in fnames:
-            remove_duplicates(input_d['GATK_path'], outdir, indir+fname)
+            remove_duplicates(input_d['GATK_path'], str(outdir)+'/', str(indir.joinpath(fname)))
 
         for fname in fnames:
-            infile = outdir+fname.replace('.bam', '_noDup.bam')
+            infile = str(outdir)+'/'+fname.replace('.bam', '_noDup.bam')
             samtools_index(input_d['Samtools_path'], infile, input_d['Threads'])
 
     ## Make 'Raw' tracks (not normalized by input)
@@ -460,13 +473,13 @@ def pipe_main(input_file):
         ))
 
         ## 'Raw' tracks (no input normalized)
-        indir = input_d['Out_folder']+'/Alignments/'
+        indir = str(out_path.joinpath('Alignments/'))+'/'
         indir = indir+'DeDuplicated/' if deduplicate else indir
         suffix = '_q5_sort_noDup.bam' if deduplicate else '_q5_sort.bam'
         ips = [name+suffix for name in input_d['IPs_names']]
         inputs = [name+suffix for name in input_d['Inputs_names']]
         all_samples = ips+inputs
-        outdir = input_d['Out_folder']+'/Tracks/NotNorm/'
+        outdir = str(out_path.joinpath('Tracks/NotNorm/'))
         os.makedirs(outdir, exist_ok=True)
 
         for s in all_samples:
@@ -486,12 +499,14 @@ def pipe_main(input_file):
             '\n'
         ))
 
-        indir = input_d['Out_folder']+'/Alignments/'
+        indir = str(out_path.joinpath('Alignments/'))+'/'
         indir = indir+'DeDuplicated/' if deduplicate else indir
         suffix = '_q5_sort_noDup.bam' if deduplicate else '_q5_sort.bam'
         ips = [name+suffix for name in input_d['IPs_names']]
         inputs = [name+suffix for name in input_d['Inputs_names']]
-        outdir = input_d['Out_folder']+'/Tracks/NormInput/'
+        outdir = str(out_path.joinpath('Tracks/Norminput 5
+        
+        +2/'))
         os.makedirs(outdir, exist_ok=True)
 
         for bam_ip, bam_in in zip(ips, inputs):
@@ -505,7 +520,6 @@ def pipe_main(input_file):
     ## Time-it and Finish
 
     end = time.time()
-    out_fld = input_d['Out_folder']
     str_time = time.strftime("%H:%M:%S", time.gmtime(end - start))
 
     print((
@@ -514,7 +528,6 @@ def pipe_main(input_file):
         '##                                                               ##\n'
         '##                  Finished!                                    ##\n'
         f'##                  Elapsed time: {str_time}                       ##\n'
-        f'##                  Results in: {out_fld}                   ##\n'
         '##                                                               ##\n'
         '###################################################################\n'
     ))
