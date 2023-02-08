@@ -181,7 +181,12 @@ def get_differential_peaks(input_file):
                f'{outfld}/Data/Window_Coverage/{prefix2}{suffix}',
                '>', str(outfile)]
         sp.call(' '.join(cmd), shell = True)
-        union_bed = pb.BedTool(outfile)
+        union_bed_pre = pb.BedTool(outfile)
+
+        ## Filter in case there are conflicting regions in genome
+        ## (apicoplast with different name i.e.). Conflicting
+        ## regions will be ignored though!
+        union_bed = union_bed_pre.filter(lambda b: b.fields[3] != '.' and b.fields[4] != '.')
 
         ## Create common peaks bed
         print('Creating common peaks bed...')

@@ -54,7 +54,7 @@ def call_fastqc(program_path, fastq_file_list, threads = '1', outdir = './'):
     sp.run(cmd)
 
 def call_multiqc(program_path, fld):
-    cmd = [program_path, fld, '-f', '-o', f'{fld}MultiQC/']
+    cmd = [program_path, fld, '-f', '-o', f'{fld}/MultiQC/']
     sp.run(cmd)
 
 ## Alignment
@@ -504,9 +504,7 @@ def pipe_main(input_file):
         suffix = '_q5_sort_noDup.bam' if deduplicate else '_q5_sort.bam'
         ips = [name+suffix for name in input_d['IPs_names']]
         inputs = [name+suffix for name in input_d['Inputs_names']]
-        outdir = str(out_path.joinpath('Tracks/Norminput 5
-        
-        +2/'))
+        outdir = str(out_path.joinpath('Tracks/Norminput/'))
         os.makedirs(outdir, exist_ok=True)
 
         for bam_ip, bam_in in zip(ips, inputs):

@@ -71,6 +71,6 @@ bowtie2 -1 /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_T
         20 (3.44%) aligned >1 times
 69.40% overall alignment rate
 
-Process started at 2023-02-07 18:15:52.775549
-Process ended at 2023-02-07 18:15:55.400220
-Process started at 0:00:02.624671
+Process started at 2023-02-08 13:04:04.392779
+Process ended at 2023-02-08 13:04:07.252448
+Process started at 0:00:02.859669

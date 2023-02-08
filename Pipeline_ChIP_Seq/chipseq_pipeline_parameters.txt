@@ -14,7 +14,7 @@
 # Take special care in the order of the samples!
 
 >Reads_folder
-/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/ChIP_Test_Data
+../../Miniprojects/ChIP_Seq_Pipeline_Executable/ChIP_Test_Data
 
 # IPs and their corresponding inputs must be in the same order!
 >IPs_Read1s
@@ -60,15 +60,15 @@ F12_input_-cho
 
 # Reads Cleaning
 >Run_BBDUK
-no
+yes
 
 # Quality Control
 >Run_FastQC
-no
+yes
 
 # Screening of other organisms
 >Run_Fastq_Screen
-no
+yes
 
 # Alignment
 >Run_Bowtie2
@@ -80,11 +80,11 @@ no
 
 # Make tracks 'Raw'
 >Run_BamCoverage
-yes
+no
 
 # Make tracks Normalized by Input
 >Run_BamCompare
-yes
+no
 
 
 ###################### Program Parameters #########################

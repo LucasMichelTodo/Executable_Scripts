@@ -15,7 +15,7 @@
     },
     "report_general_stats_data": [],
     "report_general_stats_headers": [],
-    "report_multiqc_command": "/home/lucas/.local/bin/multiqc /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests/Fastq_Screens_Clean -f -o /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests/Fastq_Screens_CleanMultiQC/",
+    "report_multiqc_command": "/home/lucas/.local/bin/multiqc /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests/Fastq_Screens_Clean -f -o /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests/Fastq_Screens_Clean/MultiQC/",
     "report_plot_data": {},
     "report_saved_raw_data": {
         "multiqc_fastq_screen": {
@@ -227,7 +227,7 @@
     "config_analysis_dir": [
         "/mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests/Fastq_Screens_Clean"
     ],
-    "config_creation_date": "2023-02-07, 18:15",
+    "config_creation_date": "2023-02-08, 13:08",
     "config_git_hash": "dff8a9a16f64cb5dd673c018c884660628dbc6c9",
     "config_intro_text": null,
     "config_report_comment": null,
