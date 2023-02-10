@@ -1,22 +1,26 @@
 #### Imports ####
 
+import pybedtools as pb
 import subprocess as sp
 import os
-
-gatk = '/home/lucas/Programs/gatk-4.1.9.0/gatk'
-wd = '/mnt/Disc4T/Projects/PhD_Project/Variant_Calling/'
-os.chdir(wd)
+from pathlib import Path
+import argparse
+import time
+import pandas as pd
+import numpy as np
+from itertools import chain
+from collections import defaultdict
 
 ### FUNTIONS ####
 
-def index_feature_file(feat_file):
+def index_feature_file(gatk, feat_file):
     cmd = '{} IndexFeatureFile -I {}' .format(gatk, feat_file)
     sp.call(cmd, shell = True)
 
-def AddOrReplaceReadGroups(bam):
-    output = bam.replace('.bam', '_withRG.bam')
-    name = bam.rsplit('.')[0]
-    cmd = ("java -jar /home/lucas/Programs/picard.jar "
+def AddOrReplaceReadGroups(gatk, bam, outfld):
+    outfile = Path(outfld).joinpath(Path(bam).stem+'_withRG.bam')
+    name = Path(bam).stem
+    cmd = ("{} "
            "AddOrReplaceReadGroups "
            "-INPUT {} "
            "-OUTPUT {} "
@@ -24,12 +28,12 @@ def AddOrReplaceReadGroups(bam):
            "-RGLB lib_{} "
            "-RGPL illumina "
            "-RGPU unit1 "
-           "-RGSM {}_sample") .format(bam, output, name, name, name)
+           "-RGSM {}_sample") .format(gatk, bam, outfile, name, name, name)
     sp.call(cmd, shell=True)
 
-def mark_duplicates(bam):
-    outfile = bam.replace('.bam', '_markedDuplicates.bam')
-    mtrcsfile = bam.replace('.bam', '_metrics.txt')
+def mark_duplicates(gatk, bam, outfld):
+    outfile = Path(outfld).joinpath(Path(bam).stem+'_markedDuplicates.bam')
+    mtrcsfile = Path(outfld).joinpath(Path(bam).stem+'_metrics.txt')
     args = [gatk, bam, outfile, mtrcsfile]
     cmd = '{} MarkDuplicates -I {} -O {} -M {}' .format(*args)
     sp.call(cmd, shell=True)
@@ -37,26 +41,20 @@ def mark_duplicates(bam):
     cmd = 'samtools sort {} -o {}' .format(outfile, outfile)
     sp.call(cmd, shell=True)
 
-def base_recalibration(bam):
-
-    outfile = bam.replace('.bam', '_baserecal_table.table')
-    known = './empty.bed'
-    ref = './ref.fasta'
-    args = [gatk, bam, ref, known, outfile]
-
+def base_recalibration(gatk, bam, outfld, known, ref_fasta):
+    outfile = Path(outfld).joinpath(Path(bam).stem+'_baserecal_table.table')
+    args = [gatk, bam, ref_fasta, known, outfile]
     cmd = ('{} BaseRecalibrator '
            '-I {} -R {} '
            '--known-sites {} '
            '-O {}') .format(*args)
-
     sp.call(cmd, shell=True)
 
-def applyBQSR(bam):
+def applyBQSR(gatk, bam, outfld, ref_fa):
 
-    outfile = bam.replace('.bam', '_BQSR.bam')
-    recal_table = bam.replace('.bam', '_baserecal_table.table')
-    ref = './ref.fasta'
-    args = [gatk, bam, ref, recal_table, outfile]
+    outfile = Path(outfld).joinpath(Path(bam).stem+'_BQSR.bam')
+    recal_table = Path(outfld).joinpath(Path(bam).stem+'_baserecal_table.table')
+    args = [gatk, bam, ref_fa, recal_table, outfile]
 
     cmd = ('{} ApplyBQSR '
            '-I {} -R {} '
@@ -65,31 +63,32 @@ def applyBQSR(bam):
 
     sp.call(cmd, shell=True)
 
-def mergeBams(*bams, out):
+def mergeBams(gatk, *bams, outfile):
     nbams = len(bams)
     inputs = '-I {} '*nbams
-    cmd = 'java -jar /home/lucas/Programs/picard.jar ' \
+    cmd = '{} ' .format(gatk) + \
         'MergeSamFiles ' + \
         inputs .format(*bams) + \
-        '-O {}.bam' .format(out)
+        '-O {}.bam' .format(outfile)
     sp.call(cmd, shell=True)
 
-def call_variants(bam):
-    outfile = bam.replace('.bam', '_variants.vcf')
-    ref = './ref.fasta'
-    args = [gatk, ref, bam, outfile]
+def samtools_index(samtools_path, infile):
+    cmd = [samtools_path, 'index', infile]
+    sp.run(cmd)
 
-    cmd = ('{} --java-options "-Xmx4g" HaplotypeCaller '
+def call_variants(gatk, ref_fasta, bam, outfile):
+    args = [gatk, ref_fasta, bam, outfile]
+    cmd = ('{} HaplotypeCaller '
            '-R {} -I {} -O {} -ploidy 1') .format(*args)
 
     sp.call(cmd, shell=True)
 
-def call_VEP(vcf, gff, fasta):
+def call_VEP(vep, vcf, gff, fasta):
 
-    out = vcf.replace('.vcf', '_VEPannotated.txt')
-    args = [vcf, out, gff, fasta]
+    outfile = Path(vcf).parent.joinpath(Path(vcf).stem+'_VEPannotated.txt')
+    args = [vep, vcf, outfile, gff, fasta]
 
-    cmd = ("/home/lucas/Programs/ensembl-vep/vep "
+    cmd = ("{} "
            "-i {} "
            "-o {} "
            "--gff {} "
@@ -98,6 +97,112 @@ def call_VEP(vcf, gff, fasta):
            "--vcf") .format(*args)
 
     sp.call(cmd, shell=True)
+
+def getAnnot(gffentry):
+
+    info = gffentry.fields[8].split(";")
+    dinfo = {x.split('=')[0]:x.split('=')[1] for x in info}
+    gid = dinfo['ID']
+    anot = dinfo['description']
+    return([gid, anot])
+
+def getRatioDepth(GF):
+    if len(GF) <2:
+        rf = np.nan
+        alt = np.nan
+        ratio = np.nan
+        dp = 0
+    else:
+        rf = int(GF[1].split(",")[0])
+        alt = int(GF[1].split(",")[1])
+        dp = rf+alt
+
+        if dp == 0:
+            ratio = np.nan
+        else:
+            ratio = round(rf / dp, 2)
+
+    return(rf, alt, ratio, dp)
+
+def parse_variant(variant, annot_dict):
+
+    # Parse vcf info
+    ref = variant.fields[3]
+    alt = variant.fields[4]
+    pos = variant.start
+    chrom = variant.chrom
+
+    samples = variant.fields[9:]
+    sample_vars = [x.split(':') for x in samples]
+
+    col_vals = [getRatioDepth(x) for x in sample_vars]
+    unnested_col_vals = [item for sublist in col_vals for item in sublist]
+    #ref_count1, alt_count1, r1, d1 = getRatioDepth(v10G)
+
+    parsed_vcf = [chrom, pos, ref, alt]+unnested_col_vals
+
+    # Parse vep info
+    info = {}
+    for x in variant.fields[7].split(";"):
+        feat = x.split("=")
+        if len(feat) == 2:
+            info[feat[0]] = feat[1]
+        else:
+            info[feat[0]] = ""
+
+    vep_out = info["CSQ"].split(",")
+    effects = [effect.split("|") for effect in vep_out]
+
+    # Add annotation (from GFF)
+    for effect in effects:
+        gene = effect[4]
+        if gene != "":
+            gannot = annot_dict[gene]
+        else:
+            gannot = ""
+        effect.append(gannot)
+
+    parsed_variant = [parsed_vcf + effect for effect in effects]
+
+    return(parsed_variant)
+
+def parse_vep(vep_file, gff_ref, sample_names, outfld):
+
+    gff_ref = pb.BedTool(gff_ref)
+    vep = pb.BedTool(vep_file)
+
+    # Create dict for annotation (from GFF)
+    gene_types = ["gene", "pseudogene"]
+    gff_gene = gff_ref.filter(lambda x: x[2] in gene_types)
+    annot = {}
+    for entry in gff_gene:
+        ga = getAnnot(entry)
+        annot[ga[0]] = ga[1]
+
+    #sample_names = ['sample_A', 'sample_B']
+    # Create DF
+    col_pfx = ["RefCount_", "AltCount_", "RefRatio_", "depth_"]
+    sample_cols = [[cp+n for cp in col_pfx] for n in sample_names]
+    unnested = [item for sublist in sample_cols for item in sublist]
+    colnames1 = ["Chrom", "Pos", "Ref", "Alt"]
+    colnames2 = ["Allele", "Consequence", "IMPACT",
+                 "SYMBOL", "Gene", "Feature_type",
+                "Feature", "BIOTYPE", "EXON", "INTRON",
+                "HGVSc", "HGVSp", "cDNA_position",
+                "CDS_position", "Protein_position",
+                "Amino_acids", "Codons", "Existing_variation",
+                "DISTANCE", "STRAND", "FLAGS",
+                "SYMBOL_SOURCE", "HGNC_ID", "SOURCE",
+                "",
+                "Annot"]
+    colnames = colnames1+unnested+colnames2
+
+
+    parsed = [parse_variant(var, annot) for var in vep]
+    flat = list(chain.from_iterable(parsed))
+    var_df = pd.DataFrame.from_records(flat, columns=colnames)
+    outname = Path(outfld).joinpath(Path(vep_file).stem+'_parsed.tsv')
+    var_df.to_csv(outname, sep = '\t')
 
 def input_parser(input_file):
     with open(input_file, 'r+') as infile:
@@ -121,8 +226,11 @@ def input_parser(input_file):
 
         return(outdict)
 
+#### MAIN FUNCTION ####
 
 def pipe_main(input_file):
+
+    print(input_file)
 
     start = time.time()
 
@@ -139,32 +247,157 @@ def pipe_main(input_file):
     #input_file = './pipeline_parameters.txt'
     input_d = input_parser(input_file)
     os.makedirs(input_d['Out_folder'], exist_ok=True)
-    input_d = input_parser(input_file)
     #print(input_d)
 
     ## Set steps to perform
-    clean = True if input_d['Run_BBDUK'] == 'yes' else False
-    fastqc = True if input_d['Run_FastQC'] == 'yes' else False
-    fastscreen = True if input_d['Run_Fastq_Screen'] == 'yes' else False
-    align = True if input_d['Run_Bowtie2'] == 'yes' else False
-    deduplicate = True if input_d['Run_GATK'] == 'yes' else False
-    rawtracks = True if input_d['Run_BamCoverage'] == 'yes' else False
-    normtracks = True if input_d['Run_BamCompare'] == 'yes' else False
+    readgroups = True if input_d['Run_readgroups'] == 'yes' else False
+    markdupl = True if input_d['Run_markdupl'] == 'yes' else False
+    baserecal = True if input_d['Run_baserecal'] == 'yes' else False
+    appbqsr = True if input_d['Run_appbqsr'] == 'yes' else False
+    mergeb = True if input_d['Run_mergeb'] == 'yes' else False
+    callvars = True if input_d['Run_callvars'] == 'yes' else False
+    callvep = True if input_d['Run_callvep'] == 'yes' else False
+    parsevep = True if input_d['Run_parsevep'] == 'yes' else False
+
 
     steps = [k for k, v in input_d.items() if k.startswith('Run') and v == 'yes']
     print('Running steps:\n')
     for step in steps:
         print(step)
 
-    ## Clean Reads
-    if clean:
+    ## Create output folders
+    os.makedirs(input_d['Out_folder'], exist_ok=True)
+    bamsdir = Path(input_d['Out_folder']).joinpath('Bams')
+    os.makedirs(bamsdir, exist_ok=True)
+
+    ## Add or replace readsgroups
+    if readgroups:
         print((
             '\n'
             '-------------------------------------------------------------------\n'
-            '                       Cleaning Reads\n'
+            '                  Running AddOrReplaceReadGroups\n'
             '-------------------------------------------------------------------\n'
             '\n'
         ))
+        for b in input_d['Bams']:
+            bpath = Path(input_d['In_fld']).joinpath(b)
+            AddOrReplaceReadGroups(input_d['GATK_path'], bpath, bamsdir)
+
+    ## Mark duplicates
+    if markdupl:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                    Running MarkDuplicates\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+        for b in input_d['Bams']:
+            bpath = bamsdir.joinpath(Path(b).stem+'_withRG.bam')
+            mark_duplicates(input_d['GATK_path'], bpath, bamsdir)
+
+    ## Base recalibration
+    if baserecal:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                    Running BaseRecalibrator\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+        for b in input_d['Bams']:
+            bpath_1 = bamsdir.joinpath(Path(b).stem+'_withRG.bam')
+            bpath_2 = str(bpath_1).replace('.bam', '_markedDuplicates.bam')
+            base_recalibration(input_d['GATK_path'],
+                               bpath_2, bamsdir,
+                               input_d['Ref_bed'],
+                               input_d['Ref_fa'])
+
+    ## Apply Base Quality Score Recalibration
+    if appbqsr:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                    Running ApplyBQSR\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+        for b in input_d['Bams']:
+            bpath_1 = bamsdir.joinpath(Path(b).stem+'_withRG.bam')
+            bpath_2 = str(bpath_1).replace('.bam', '_markedDuplicates.bam')
+            applyBQSR(input_d['GATK_path'],
+                      bpath_2, bamsdir,
+                      input_d['Ref_fa'])
+
+    ## Merge Bams
+    if mergeb:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                         Merging Bams\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+
+        inbams = []
+        for b in input_d['Bams']:
+            bpath_1 = bamsdir.joinpath(Path(b).stem+'_withRG.bam')
+            bpath_2 = str(bpath_1).replace('.bam', '_markedDuplicates_BQSR.bam')
+            inbams.append(bpath_2)
+
+        outbam = bamsdir.joinpath('all_samples_merged')
+        mergeBams(input_d['GATK_path'], *inbams,
+                  outfile = outbam)
+        samtools_index(input_d['Sam_path'], str(outbam)+'.bam')
+
+    ## Merge Bams
+    if callvars:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                         Calling Variants\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+
+        mergedbam = Path(input_d['Out_folder']).joinpath('Bams/all_samples_merged.bam')
+        call_variants(input_d['GATK_path'],
+                      input_d['Ref_fa'],
+                      mergedbam,
+                      Path(input_d['Out_folder']).joinpath('all_samples_variants.vcf'))
+
+    ## Annotate variants with VEP
+    if callvep:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                Annotating Variants with VEP\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+
+        vcf = str(Path(input_d['Out_folder']).joinpath('all_samples_variants.vcf'))
+        call_VEP(input_d['Vep_path'], vcf,
+                 input_d['Ref_gff'],
+                 input_d['Ref_fa'])
+
+    ## Annotate variants with VEP
+    if parsevep:
+        print((
+            '\n'
+            '-------------------------------------------------------------------\n'
+            '                    Parsing VEP annotations\n'
+            '-------------------------------------------------------------------\n'
+            '\n'
+        ))
+
+        ## Parse VEP variants
+        vep_name = 'all_samples_variants_VEPannotated.txt'
+        vep_file = str(Path(input_d['Out_folder']).joinpath(vep_name))
+        parse_vep(vep_file, input_d['Ref_gff'],
+                  input_d['Sample_names'], input_d['Out_folder'])
+
+
 
     ## Time-it and Finish
 
@@ -178,7 +411,6 @@ def pipe_main(input_file):
         '##                                                               ##\n'
         '##                  Finished!                                    ##\n'
         f'##                  Elapsed time: {str_time}                       ##\n'
-        f'##                  Results in: {out_fld}                   ##\n'
         '##                                                               ##\n'
         '###################################################################\n'
     ))
@@ -204,7 +436,7 @@ def run():
         'must be set in this text file. Follow '
         'the instructions in it!'
     )
-    parser.add_argument('-pf', type = str, dest = 'params',
+    parser.add_argument('-pf', type = os.path.abspath, dest = 'params',
                         metavar = 'params_file', required = True,
                         help=hline)
 
@@ -218,55 +450,3 @@ if __name__ == "__main__":
     run()
 
 
-
-####################################################
-
-import os
-import subprocess as sp
-
-wd = '/mnt/Disc4T/Projects/PhD_Project/Variant_Calling/'
-os.chdir(wd)
-
-gatk = '/home/lucas/Programs/gatk-4.1.9.0/gatk'
-indir = '/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/Bams/'
-
-os.listdir(indir)
-
-bams = ['1.2B_in_sort_q5.bam',
-        '10G_in_sort_q5.bam',
-        'A7K9_in_sort_q5.bam',
-        'E5K9_in_sort_q5.bam',
-        'B11_in_sort_q5.bam'
-        #'NF54_in_renamed_q5_sort.bam',
-        ]
-
-index_feature_file('./empty.bed')
-
-for bam in bams:
-    bam = indir+bam
-
-    AddOrReplaceReadGroups(bam)
-    bam = bam.replace('.bam', '_withRG.bam')
-
-    mark_duplicates(bam)
-    bam = bam.replace('.bam', '_markedDuplicates.bam')
-
-    base_recalibration(bam)
-    applyBQSR(bam)
-    bam = bam.replace('.bam', '_BQSR.bam')
-
-
-bamlist = [f for f in os.listdir(indir) if f.endswith('_withRG_markedDuplicates_BQSR.bam')]
-
-os.chdir(indir)
-mergeBams(*bamlist, out = 'merged_12B_10G_A7_E5_B11')
-
-bam = 'merged_12B_10G_A7_E5_B11.bam'
-sp.call('samtools index {}' .format(bam), shell=True)
-call_variants(bam)
-
-os.chdir(wd)
-vcf = './merged_12B_10G_A7_E5_B11_variants.vcf'
-gff = './PlDB-52_Pfalciparum3D7_vep_changetypes.gff.gz'
-fasta = './ref.fasta'
-call_VEP(vcf, gff, fasta)
