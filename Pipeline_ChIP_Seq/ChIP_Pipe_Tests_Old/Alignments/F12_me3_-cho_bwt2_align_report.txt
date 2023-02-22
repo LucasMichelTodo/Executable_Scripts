@@ -1,0 +1,18 @@
+/mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests_New/Alignments/F12_me3_-cho.sam
+
+bowtie2 -1 /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests_New/Clean_Reads/NCV28_me_R1_subset1000_clean.fq -2 /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests_New/Clean_Reads/NCV28_me_R2_subset1000_clean.fq -S /mnt/Disc4T/Projects/Executable_Scripts/Pipeline_ChIP_Seq/ChIP_Pipe_Tests_New/Alignments/F12_me3_-cho.sam -p 8 --very-sensitive --local -5 4 -3 4 -I 50 -X 2000 -x /home/lucas/Programs/bowtie2-2.3.0-legacy/Pf3D7
+939 reads; of these:
+  939 (100.00%) were paired; of these:
+    783 (83.39%) aligned concordantly 0 times
+    57 (6.07%) aligned concordantly exactly 1 time
+    99 (10.54%) aligned concordantly >1 times
+    ----
+    783 pairs aligned concordantly 0 times; of these:
+      2 (0.26%) aligned discordantly 1 time
+    ----
+    781 pairs aligned 0 times concordantly or discordantly; of these:
+      1562 mates make up the pairs; of these:
+        1525 (97.63%) aligned 0 times
+        5 (0.32%) aligned exactly 1 time
+        32 (2.05%) aligned >1 times
+18.80% overall alignment rate

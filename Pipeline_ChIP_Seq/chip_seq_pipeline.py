@@ -301,6 +301,13 @@ def pipe_main(input_file):
 
     start = time.time()
 
+    input_d = input_parser(input_file)
+    print('\nProgram parameters:\n')
+    for k, v in input_d.items():
+        print(f'{k}:')
+        print(f'{v}\n')
+
+
     ## Greet User
     print((
         '\n'
@@ -309,11 +316,6 @@ def pipe_main(input_file):
         '###################################################################\n'
         '\n'
     ))
-
-    #os.chdir('/mnt/Disc4T/Projects/Miniprojects/ChIP_Seq_Pipeline_Executable/')
-    #input_file = './pipeline_parameters.txt'
-    input_d = input_parser(input_file)
-    #print(input_d)
 
     ## Paths
     reads_path = pth.Path(input_d['Reads_folder']).resolve()

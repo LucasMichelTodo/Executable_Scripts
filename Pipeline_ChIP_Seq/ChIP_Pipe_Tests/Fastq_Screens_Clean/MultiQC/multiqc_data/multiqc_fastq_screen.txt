@@ -1,9 +1,0 @@
-Sample	total_reads	Pf3D7 counts	Pf3D7 percentage	Human counts	Human percentage	Mycoplasma_alaidlawii counts	Mycoplasma_alaidlawii percentage	Mycoplasma_marginini counts	Mycoplasma_marginini percentage	Mycoplasma_mfermentans counts	Mycoplasma_mfermentans percentage	Mycoplasma_mhominis counts	Mycoplasma_mhominis percentage	Mycoplasma_mhyorinis counts	Mycoplasma_mhyorinis percentage	Mycoplasma_morale counts	Mycoplasma_morale percentage	S.Aureus counts	S.Aureus percentage	P.falc_ribosomal counts	P.falc_ribosomal percentage	No hits counts	No hits percentage
-NCV26_me_R1_subset1000_clean_screen	989	305.0	30.83	718.0	72.59	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0	0.1	0.0	0.0	0.0	0.0	10.0	1.01	8	0.81
-NCV26_me_R2_subset1000_clean_screen	989	303.0	30.63	716.0	72.4	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	2.0	0.2	0.0	0.0	0.0	0.0	8.0	0.8099999999999999	11	1.21
-NCV27_in_R1_subset1000_clean_screen	973	819.0	84.16999999999999	320.0	32.89	0.0	0.0	0.0	0.0	1.0	0.1	0.0	0.0	17.0	1.74	16.0	1.65	0.0	0.0	45.0	4.63	3	0.41
-NCV27_in_R2_subset1000_clean_screen	973	809.0	83.15	279.0	28.669999999999998	0.0	0.0	1.0	0.1	1.0	0.1	0.0	0.0	17.0	1.75	14.0	1.44	0.0	0.0	29.0	2.98	10	1.13
-NCV28_me_R1_subset1000_clean_screen	939	165.0	17.58	785.0	83.6	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0	0.11	0.0	0.0	0.0	0.0	9.0	0.96	15	1.6
-NCV28_me_R2_subset1000_clean_screen	939	164.0	17.46	779.0	82.95	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	4.0	0.43	1.0	0.11	0.0	0.0	3.0	0.32	18	1.92
-NCV29_in_R1_subset1000_clean_screen	915	629.0	68.75	381.0	41.64	0.0	0.0	0.0	0.0	1.0	0.11	1.0	0.11	15.0	1.64	25.0	2.74	0.0	0.0	41.0	4.49	11	1.31
-NCV29_in_R2_subset1000_clean_screen	915	628.0	68.64	370.0	40.44	0.0	0.0	1.0	0.11	1.0	0.11	0.0	0.0	10.0	1.09	28.0	3.07	0.0	0.0	27.0	2.95	9	1.09

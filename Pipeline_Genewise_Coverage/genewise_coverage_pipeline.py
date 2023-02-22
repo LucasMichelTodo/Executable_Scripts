@@ -243,9 +243,6 @@ def parse_genewise_cov(in_file):
             parsed_file.append([chrom, start, stop, cov, annot_d])
     return(parsed_file)
 
-#outfile = '/home/lucas/ISGlobal/Projects/Alba/ChIP_Seqs_01_23_edited_genomes/Genewise_Pipe/chip_00160_APC13_genomeDD_q5_sort_noDup_rpkm_normInput_bs10_smth200_pseudo1_crossed_PlasmoDB-61_Pfalciparum3D7_edited_DD_final_filtered_only_genes_10005p_500CDS.tsv'
-#x = parse_genewise_cov(outfile)
-
 def input_parser(input_file):
     with open(input_file, 'r+') as infile:
         lines = [l.strip() for l in infile if len(l.strip()) > 0 and not l.startswith('#')]
@@ -272,6 +269,11 @@ def input_parser(input_file):
 def genomewise_coverage(input_file):
 
     input_d = input_parser(input_file)
+    print('\nProgram parameters:\n')
+    for k, v in input_d.items():
+        print(f'{k}:')
+        print(f'{v}\n')
+
     #print(input_d)
 
     ## Make folders for output
@@ -288,7 +290,7 @@ def genomewise_coverage(input_file):
 
 
     steps = [k for k, v in input_d.items() if k.startswith('Run') and v == 'yes']
-    print('Running steps:\n')
+    print('\nRunning steps:\n')
     for step in steps:
         print(step)
 

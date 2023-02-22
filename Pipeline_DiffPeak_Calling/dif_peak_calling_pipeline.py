@@ -13,6 +13,9 @@ from itertools import repeat
 import argparse
 from collections import defaultdict
 import pathlib as pth
+from pathlib import Path
+from scipy.stats import multivariate_normal
+
 
 ## Functions
 
@@ -24,14 +27,33 @@ def create_window_ref(window_size, genome_file, step):
 def plot_gaussian_mixture(cov_vector, gm, plotname):
 
     # Plot the histogram.
-    plt.hist(cov_vector, bins=25, density=True, alpha=0.6, color='g')
+    plt.hist(cov_vector, bins=250, density=True, alpha=0.6, color='g')
 
     # Plot the PDF.
     xmin, xmax = plt.xlim()
     x = np.linspace(xmin, xmax, 100)
     logprob = gm.score_samples(x.reshape(-1, 1))
     pdf = np.exp(logprob)
-    plt.plot(x, pdf, 'k', linewidth=2)
+    plt.plot(x, pdf, 'k', linewidth=2, label = 'Join PDF')
+
+    # derive cumulative distribution function (cdf)
+    cumsum = np.cumsum(pdf)
+    # scale as a probability distribution
+    cdf = cumsum / np.max(cumsum)
+    # plot cdf, scaled to the y limits of the above plot
+    xmin, xmax, ymin, ymax = plt.axis()
+    plt.plot(x, cdf * ymax, '-b', label='Join CDF') # multiplying by ymax sets it to plot scale
+
+    ## Get each distribution and it's associated probabilities
+    multi_var_distr = [multivariate_normal(mu, sigma) for (mu, sigma) in zip(gm.means_, gm.covariances_)]
+    cdf1 = multi_var_distr[0].cdf(x)
+    cdf2 = multi_var_distr[1].cdf(x)
+    # multiplying by ymax sets it to plot scale
+    plt.plot(x, cdf1* ymax, ':r', linewidth=2, label = 'Component 1 CDF')
+    # multiplying by ymax sets it to plot scale
+    plt.plot(x, cdf2* ymax, ':g', linewidth=2, label = 'Component 2 CDF')
+
+    plt.legend(loc='upper left')
     plt.savefig(plotname)
     plt.clf()
 
@@ -45,11 +67,49 @@ def plot_components(cov_vector, gm, plotname):
     logprob = gm.predict_proba(x.reshape(-1, 1))
     cdf1 = logprob[:,0]
     cdf2 = logprob[:,1]
-    plt.plot(x, cdf1, 'k', linewidth=2, color='blue', label="Component 1")
-    plt.plot(x, cdf2, 'k', linewidth=2, color='green', label="Component 2")
+    plt.plot(x, cdf1, 'r', linewidth=2, label="Component 1")
+    plt.plot(x, cdf2, 'g', linewidth=2, label="Component 2")
     plt.legend(loc='upper left')
     plt.savefig(plotname)
     plt.clf()
+
+def get_peak_component(gm, cov):
+    '''
+    Take a gm model and a coverage vector and return components
+    by coverage mean order (so first returned component
+    always corresponds to peaks).
+    '''
+    labels = gm.predict(cov.reshape(-1,1))
+    cmp0cov = np.mean(cov[labels == 0])
+    cmp1cov = np.mean(cov[labels == 1])
+
+    peakcmp = 0 if cmp0cov > cmp1cov else 1
+    bkgdcmp = 1 - peakcmp
+    return([peakcmp, bkgdcmp])
+
+def get_individual_peaks(covfile, gm, mergedist, minlen, outfld, name):
+
+    cov_file = pb.BedTool(covfile)
+    cov = np.array([float(f.fields[3]) for f in cov_file])
+    probs = gm.predict_proba(cov.reshape(-1,1))
+    peakcomp, bkgdcomp = get_peak_component(gm, cov)
+    mask = probs[:,bkgdcomp] < probs[:,peakcomp]
+
+    outbed = Path(outfld).joinpath(f'{name}_individual_peaks.bed')
+    with open(outbed, 'w+') as outfile:
+        for feat, mask in zip(cov_file, mask):
+            if mask:
+                outfile.write(str(feat))
+
+    outbed_raw = pb.BedTool(outbed)
+    out_pre = outbed_raw.sort().merge(d=mergedist)
+    out = out_pre.filter(lambda f: f.stop - f.start > minlen).saveas(outbed)
+
+def plot_scores(score_vect, chroms, starts, stops, outfile):
+        with open(outfile, 'w+') as scorebed:
+            for i in range(0, len(score_vect)):
+                ll = [chroms[i], starts[i], stops[i], score_vect[i]]
+                scorebed.write('\t'.join([str(x) for x in ll])+'\n')
 
 def input_parser(input_file):
     with open(input_file, 'r+') as infile:
@@ -64,7 +124,6 @@ def input_parser(input_file):
                 pipe_dict[entry].append(line)
 
         list_keys = [
-            'Peaks_1', 'Peaks_2',
             'Coverages_1', 'Coverages_2',
             'Names_1', 'Names_2'
         ]
@@ -77,19 +136,23 @@ def input_parser(input_file):
 
         return(outdict)
 
+
 ## Diffpeakcalling algortihm
 def get_differential_peaks(input_file):
 
     input_d = input_parser(input_file)
+    print('\nProgram parameters:\n')
+    for k, v in input_d.items():
+        print(f'{k}:')
+        print(f'{v}\n')
+
 
     ## Paths
-    out_dir = pth.Path(input_d['Out_folder']).resolve()
-    peaksdir = pth.Path(input_d['Peaks_dir']).resolve()
-    covdir = pth.Path(input_d['Coverage_dir']).resolve()
+    out_dir = Path(input_d['Out_folder']).resolve()
+    covdir = Path(input_d['Coverage_dir']).resolve()
     os.makedirs(out_dir, exist_ok=True)
 
     ## Others
-    peaks1, peaks2 = input_d['Peaks_1'], input_d['Peaks_2']
     covs1, covs2 = input_d['Coverages_1'], input_d['Coverages_2']
     pfxs1, pfxs2 = input_d['Names_1'], input_d['Names_2']
     genome_file = input_d['Genome']
@@ -113,13 +176,15 @@ def get_differential_peaks(input_file):
 
     # Run Algorithm by Pairs
 
-    peaks = zip(peaks1, peaks2)
     covs = zip(covs1, covs2)
     names = zip(pfxs1, pfxs2)
 
-    for peaks, covs, names in zip(peaks, covs, names):
-        peakfile1 = peaksdir.joinpath(peaks[0])
-        peakfile2 = peaksdir.joinpath(peaks[1])
+    for covs, names in zip(covs, names):
+
+        #covfile1 = covdir.joinpath(covs1[0])
+        #covfile2 = covdir.joinpath(covs2[0])
+        #prefix1, prefix2 = pfxs1[0], pfxs2[0]
+
         covfile1 = covdir.joinpath(covs[0])
         covfile2 = covdir.joinpath(covs[1])
         prefix1, prefix2 = names[0], names[1]
@@ -136,17 +201,16 @@ def get_differential_peaks(input_file):
         os.makedirs(outfld.joinpath('Data/Window_Coverage/'), exist_ok = True)
         os.makedirs(outfld.joinpath('Data/PreFilter_Difpeaks/'), exist_ok = True)
 
-        ## Generate GaussianMixture distribution with 2 components for coverage in peaks
-        ## Peaks coverage
+        ## Generate GaussianMixture distribution with 2 components for coverage
+
         print('Fitting distribution...')
 
-        pf1 = pb.BedTool(peakfile1)
-        pf2 = pb.BedTool(peakfile2)
         cf1 = pb.BedTool(covfile1)
         cf2 = pb.BedTool(covfile2)
+        cov_1 = np.array([float(f.fields[3]) for f in cf1])
+        cov_2 = np.array([float(f.fields[3]) for f in cf2])
 
-        cov_peaks1 = np.array([float(f.fields[10]) for f in pf1.map(cf1, c = 4, o='mean')])
-        cov_peaks2 = np.array([float(f.fields[10]) for f in pf2.map(cf2, c = 4, o='mean')])
+        ## Fitting distribution: Gaussian Mixture
 
         ## All sklearn estimators use as input a 2D array,
         ## with samples as rows and features as columns.
@@ -156,15 +220,26 @@ def get_differential_peaks(input_file):
         ## -1 in reshape just means whatever it takes to make it work!
         ## So (-1, 1) means: any number of rows and 1 column
 
-        gm1 = GaussianMixture(n_components=2).fit(cov_peaks1.reshape(-1, 1))
-        gm2 = GaussianMixture(n_components=2).fit(cov_peaks2.reshape(-1, 1))
+        gm1 = GaussianMixture(n_components=2).fit(cov_1.reshape(-1, 1))
+        gm2 = GaussianMixture(n_components=2).fit(cov_2.reshape(-1, 1))
 
         suffix = '_peak_coverage_fit.png'
 
-        plot_gaussian_mixture(cov_peaks1, gm1, f'{outfld}/Data/Plots/{prefix1}{suffix}')
-        plot_gaussian_mixture(cov_peaks2, gm2, f'{outfld}/Data/Plots/{prefix2}{suffix}')
-        plot_components(cov_peaks1, gm1, f'{outfld}/Data/Plots/{prefix1}_components_cdf.png')
-        plot_components(cov_peaks2, gm2, f'{outfld}/Data/Plots/{prefix2}_components_cdf.png')
+        # Plotting Fitted Distribution
+
+        plot_gaussian_mixture(cov_1, gm1, f'{outfld}/Data/Plots/{prefix1}{suffix}')
+        plot_gaussian_mixture(cov_2, gm2, f'{outfld}/Data/Plots/{prefix2}{suffix}')
+        plot_components(cov_1, gm1, f'{outfld}/Data/Plots/{prefix1}_components_cdf.png')
+        plot_components(cov_2, gm2, f'{outfld}/Data/Plots/{prefix2}_components_cdf.png')
+
+        ## Identify components
+        ## (one component represents peak regions and the other background)
+        peakcomp1, bkgdcomp1 = get_peak_component(gm1, cov_1)
+        peakcomp2, bkgdcomp2 = get_peak_component(gm2, cov_2)
+
+        ## Generating individual peaks
+        get_individual_peaks(covfile1, gm1, 100, 100, outfld, prefix1)
+        get_individual_peaks(covfile2, gm2, 100, 100, outfld, prefix2)
 
         ## Create window reference
         print('Creating windowed coverage...')
@@ -192,6 +267,8 @@ def get_differential_peaks(input_file):
         print('Creating common peaks bed...')
 
         files_to_cross = []
+        peakfile1 = outfld.joinpath(f'{prefix1}_individual_peaks.bed')
+        peakfile2 = outfld.joinpath(f'{prefix2}_individual_peaks.bed')
         str_beds = str(peakfile1) + ' ' + str(peakfile2)
         outfile = f'{outfld}/Data/Common_Peaks/{prefix1}_{prefix2}_common_peaks.bed'
         cmd = 'awk \'{print}\' '+f'{str_beds} > {outfile}'
@@ -202,50 +279,65 @@ def get_differential_peaks(input_file):
         common_cov_common_peaks = union_bed.intersect(common_peaks)
 
         ## Call differential peaks
+
         print('Calling differential peaks (this might take a while)...')
 
-        c1s = [float(x.fields[3]) for x in common_cov_common_peaks]
-        c2s = [float(x.fields[4]) for x in common_cov_common_peaks]
-
-        c1s = np.array(c1s)
-        c2s = np.array(c2s)
-
-        ## Identify components
-        labels1 = gm1.predict(c1s.reshape(-1, 1))
-        labels2 = gm2.predict(c2s.reshape(-1, 1))
-
-        comp1_cov1 = np.mean(c1s[labels1 == 0])
-        comp2_cov1 = np.mean(c1s[labels1 == 1])
-
-        comp1_cov2 = np.mean(c2s[labels2 == 0])
-        comp2_cov2 = np.mean(c2s[labels2 == 1])
-
-        peakcomp1 = 0 if comp1_cov1 > comp2_cov1 else 1
-        peakcomp2 = 0 if comp1_cov2 > comp2_cov2 else 1
+        c1s = np.array([float(x.fields[3]) for x in common_cov_common_peaks])
+        c2s = np.array([float(x.fields[4]) for x in common_cov_common_peaks])
 
         print((
             f'Comparing component {peakcomp1+1} from sample {prefix1} '
             f'to component {peakcomp2+1} from sample {prefix2}.'
         ))
 
-        ## Comparing probability of being a peak
-        prob1s_pre = gm1.predict_proba(c1s.reshape(-1, 1))
-        prob2s_pre = gm2.predict_proba(c2s.reshape(-1, 1))
-        prob1s = prob1s_pre[:,peakcomp1]
-        prob2s = prob2s_pre[:,peakcomp2]
+        # Calculate CDF, for each interval for each component
 
-        probdifs = prob1s - prob2s
-        peaks1over2 = probdifs > minprobdif
-        peaks2over1 = -probdifs > minprobdif
+        multi_var_distr1 = [multivariate_normal(mu, sigma) for (mu, sigma) in zip(gm1.means_, gm1.covariances_)]
+        cdf1_peakcomp = multi_var_distr1[peakcomp1].cdf(c1s)
+        cdf1_bkgdcomp = multi_var_distr1[bkgdcomp1].cdf(c1s)
+
+        multi_var_distr2 = [multivariate_normal(mu, sigma) for (mu, sigma) in zip(gm2.means_, gm1.covariances_)]
+        cdf2_peakcomp = multi_var_distr2[peakcomp2].cdf(c2s)
+        cdf2_bkgdcomp = multi_var_distr2[bkgdcomp2].cdf(c2s)
+
+        cdf_peak_dif = cdf1_peakcomp - cdf2_peakcomp
+        cdf_bkgd_dif = cdf1_bkgdcomp - cdf2_bkgdcomp
+
+        # Plot peaks-component cdf difference distribution
+        plotname = f'{outfld}/Data/Plots/cdf_peakcomp_dif.png'
+        plt.hist(cdf_peak_dif, bins=25, density=True, alpha=0.6, color='r')
+        plt.savefig(plotname)
+        plt.clf()
+
+        # Plot background-component cdf difference distribution
+        plotname = f'{outfld}/Data/Plots/cdf_bkgdcomp_dif.png'
+        plt.hist(cdf_bkgd_dif, bins=25, density=True, alpha=0.6, color='r')
+        plt.savefig(plotname)
+        plt.clf()
+
+        ## Getting Peaks
+
+        peaks1over2_peaks = cdf_peak_dif >= minprobdif
+        peaks1over2_bkgd = cdf_bkgd_dif >= minprobdif
+        peaks2over1_peaks = cdf_peak_dif <= -minprobdif
+        peaks2over1_bkgd = cdf_bkgd_dif <= -minprobdif
+
+        peaks1over2 = [any(b) for b in zip(peaks1over2_peaks, peaks1over2_bkgd)]
+        peaks2over1 = [any(b) for b in zip(peaks2over1_peaks, peaks2over1_bkgd)]
+
         chroms = [x.chrom for x in common_cov_common_peaks]
         starts = [x.start for x in common_cov_common_peaks]
         stops = [x.stop for x in common_cov_common_peaks]
 
+        ## Create scoring function bdg
+        outplot = f'{outfld}/Data/Plots/cdf_peakcomp_dif.bdg'
+        plot_scores(cdf_peak_dif, chroms, starts, stops, outplot)
+        outplot = f'{outfld}/Data/Plots/cdf_bkgdcomp_dif.bdg'
+        plot_scores(cdf_bkgd_dif, chroms, starts, stops, outplot)
+
+        ## Generate final list of Differential Peaks
         pd.DataFrame(common_cov_common_peaks)
-        df = pd.read_table(
-            common_cov_common_peaks.fn,
-            names=['#chrom', 'start', 'stop', 'cov1', 'cov2']
-                   )
+        df = pd.read_table(common_cov_common_peaks.fn, names=['#chrom', 'start', 'stop', 'cov1', 'cov2'])
         rawout1 = (f'{outfld}/Data/PreFilter_Difpeaks/'
                    f'difpeaks_{prefix1}over{prefix2}'
                    f'_w{window_size}_s{stepsize}_pd{minprobdif}.bed')

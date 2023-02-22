@@ -46,7 +46,7 @@ F12_input_-cho
 ########################### Others ################################
 
 >Out_folder
-./ChIP_Pipe_Tests
+./ChIP_Pipe_Tests_New
 
 # Number of processors to use
 >Threads
@@ -72,19 +72,19 @@ yes
 
 # Alignment
 >Run_Bowtie2
-no
+yes
 
 # Remove Duplicates
 >Run_GATK
-no
+yes
 
 # Make tracks 'Raw'
 >Run_BamCoverage
-no
+yes
 
 # Make tracks Normalized by Input
 >Run_BamCompare
-no
+yes
 
 
 ###################### Program Parameters #########################

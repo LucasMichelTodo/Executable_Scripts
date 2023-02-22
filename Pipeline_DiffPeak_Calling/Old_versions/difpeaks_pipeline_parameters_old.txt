@@ -1,0 +1,92 @@
+###################################################################
+###       Differential Peak Calling Pipeline: by Lucas MT       ###
+###################################################################
+
+# Fill in this form to run the pipeline. Lines starting with ">"
+# denote entries to fill (parameters). Entries must be written one per line.
+# All entries must be filled in!
+
+# Lines starting with '#' are for comments, they won't affect the script.
+# Empty lines won't affect the script either.
+
+########################## Input Data ###############################
+
+# Samples go in pairs, sample 1 will be compared to sample 2
+
+# Take special care in the order of the samples!
+# If you want to compare the same sample more than once,
+# you will have to write it as input again as necessary.
+
+## Peak files, individual peak-callings from MACS2 in '.narrowPeak' format.
+>Peaks_dir
+/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/Peak_Calling_MACS2
+
+>Peaks_1
+1.2B_me_Macspeaks_peaks.narrowPeak
+A7K9_me_Macspeaks_peaks.narrowPeak
+
+>Peaks_2
+10G_me_Macspeaks_peaks.narrowPeak
+E5K9_me_Macspeaks_peaks.narrowPeak
+
+## Coverage files (track files), usually normalized by input, in '.bed/.gedgraph/.bdg' format.
+>Coverage_dir
+/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/RPKMs_NormInput_noDup_bs10_smth_200_pseudo_10/
+
+>Coverages_1
+1.2B_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+A7K9_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+
+>Coverages_2
+10G_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+E5K9_me_sort_q5_noDup_rpkm_normInput_bs10_smth200_pseudo10.bdg
+
+## Sample names (used for outputs)
+>Names_1
+sample_12B
+sample_A7
+
+>Names_2
+sample_10G
+sample_E5
+
+## Other Inputs
+
+# This must be a plain text file with the names of chromosomes and their lengths.
+# One chromosome and it's length per line, separated by <TAB>.
+>Genome
+/mnt/Disc4T/Projects/Miniprojects/Custom_Differential_Peak_Calling/Pf3D7.genome
+
+####################### Settable Parameters #######################
+
+# Folder for Outputs
+>Out_folder
+Difpeaks_Test_CDF
+
+# Number of processors to use
+>Threads
+8
+
+# Window Size, the window size used for coverage calculations and comparisons.
+>Win_Size
+100
+
+# Step Size, step size used to advance the window. Must be <= to window size. 
+# Set to step size = window size to generate non-overlapping windows (default).
+>Step
+100
+
+# Minimum Probability Difference (between samples). This is the value
+# that controls the stringency of the peaks called. Set it to higher values for less
+# stringent calls (and vice-versa).
+>MinProbDif
+0.3
+
+# Peak Merge Distance, peaks sepparated by <= than this distance will be merged together.
+# Peaks are merged before deing filtered by length (next parameter).
+>Merge
+500
+
+# Peak Minimum Length, peaks shorter than this distance will be filtered out. 
+>MinLen
+1000

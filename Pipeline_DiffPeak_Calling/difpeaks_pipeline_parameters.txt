@@ -17,18 +17,6 @@
 # If you want to compare the same sample more than once,
 # you will have to write it as input again as necessary.
 
-## Peak files, individual peak-callings from MACS2 in '.narrowPeak' format.
->Peaks_dir
-/home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/Peak_Calling_MACS2
-
->Peaks_1
-1.2B_me_Macspeaks_peaks.narrowPeak
-A7K9_me_Macspeaks_peaks.narrowPeak
-
->Peaks_2
-10G_me_Macspeaks_peaks.narrowPeak
-E5K9_me_Macspeaks_peaks.narrowPeak
-
 ## Coverage files (track files), usually normalized by input, in '.bed/.gedgraph/.bdg' format.
 >Coverage_dir
 /home/lucas/ISGlobal/Projects/Phd_Project/ChIP_Seq/RPKMs_NormInput_noDup_bs10_smth_200_pseudo_10/
@@ -61,7 +49,7 @@ sample_E5
 
 # Folder for Outputs
 >Out_folder
-Difpeaks_Test
+Difpeaks_Test_CDF
 
 # Number of processors to use
 >Threads
