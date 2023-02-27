@@ -49,7 +49,7 @@ sample_E5
 
 # Folder for Outputs
 >Out_folder
-Difpeaks_Test_CDF
+./Difpeaks_Test_Scores
 
 # Number of processors to use
 >Threads

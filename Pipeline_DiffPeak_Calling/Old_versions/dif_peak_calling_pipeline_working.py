@@ -428,16 +428,23 @@ def get_differential_peaks(input_file):
         #print(distrib.std())
 
         ## Getting Peaks
-        peaks1over2 = probdifs > minprobdif #(nonpeakprobdifs > minprobdif))
-        peaks2over1 = -probdifs > minprobdif #(-nonpeakprobdifs > minprobdif))
+        # peaks1over2 = probdifs > minprobdif #(nonpeakprobdifs > minprobdif))
+        # peaks2over1 = -probdifs > minprobdif #(-nonpeakprobdifs > minprobdif))
 
         #peaks1over2 = (cdf1 - cdf2) > 0
         #peaks2over1 = (cdf2 - cdf1) > 0
 
-        pth = 0.1
-        bth = 0.1
-        peaks1over2 = (cdf_peak_dif >= pth) | (cdf_bkgd_dif >= bth)
-        peaks2over1 = (cdf_peak_dif <= -pth) | (cdf_bkgd_dif <= -bth)
+        # pth = 0.1
+        # bth = 0.1
+        # peaks1over2 = (cdf_peak_dif >= pth) | (cdf_bkgd_dif >= bth)
+        # peaks2over1 = (cdf_peak_dif <= -pth) | (cdf_bkgd_dif <= -bth)
+
+        peaks1over2_peaks = cdf_peak_dif >= minprobdif
+        peaks1over2_bkgd = cdf_bkgd_dif >= minprobdif
+        peaks2over1_peaks = cdf_peak_dif <= -minprobdif
+        peaks2over1_bkgd = cdf_bkgd_dif <= -minprobdif
+        peaks1over2 = [any(b) for b in zip(peaks1over2_peaks, peaks1over2_bkgd)]
+        peaks2over1 = [any(b) for b in zip(peaks2over1_peaks, peaks2over1_bkgd)]
 
         #peaks1over2 = (cdf_peak_dif >= th)
         #peaks2over1 = (cdf_peak_dif <= -th)
@@ -462,6 +469,12 @@ def get_differential_peaks(input_file):
         #pd.DataFrame(union_bed)
         pd.DataFrame(common_cov_common_peaks)
         df = pd.read_table(common_cov_common_peaks.fn, names=['#chrom', 'start', 'stop', 'cov1', 'cov2'])
+        df['Bkgd_CDF_dif'] = cdf_bkgd_dif
+        df['Peak_CDF_dif'] = cdf_peak_dif
+        ## Get max (in positive or negative)
+        row_max = df[['Bkgd_CDF_dif', 'Peak_CDF_dif']].abs().max(axis=1)
+        df['Max_CDF_dif'] = df[['Bkgd_CDF_dif', 'Peak_CDF_dif']].max(axis=1).mask(lambda x: x < row_max, -row_max)
+
         #df = pd.read_table('/mnt/Disc4T/Projects/Executable_Scripts/Difpeaks_Test_CDF/sample_12B_vs_sample_10G/Data/Common_Coverage/sample_12B_sample_10G_common_coverage.bdg', names=['#chrom', 'start', 'stop', 'cov1', 'cov2']
         rawout1 = (f'{outfld}/Data/PreFilter_Difpeaks/'
                    f'difpeaks_{prefix1}over{prefix2}'
@@ -488,10 +501,41 @@ def get_differential_peaks(input_file):
                 f'_mg{mergedist}_ml{minlen}'
                 '_difpeaks.bed')
 
-        out1_pre = rawbed1.sort().merge(d=mergedist)
-        out1 = out1_pre.filter(lambda f: f.stop - f.start > minlen).saveas(out1)
-        out2_pre = rawbed2.sort().merge(d=mergedist)
-        out2 = out2_pre.filter(lambda f: f.stop - f.start > minlen).saveas(out2)
+        funcs = ['mean']*5
+        out1_pre = rawbed1.sort().merge(d=mergedist, c =[4,5,6,7,8], o=funcs)
+        bed1 = pb.BedTool(out1_pre.filter(lambda f: f.stop - f.start > minlen).saveas())
+        out2_pre = rawbed2.sort().merge(d=mergedist, c =[4,5,6,7,8], o=funcs)
+        bed2 = pb.BedTool(out2_pre.filter(lambda f: f.stop - f.start > minlen).saveas())
+
+        header = (
+            f'# Differential peaks for {prefix1} vs {prefix2}\n'
+            '# This file was generated to be run in a browser like IGV.\n'
+            '# Columns correspond to: chr, start, stop, peak_id, max_cdf_dif, '
+            'coverage sample1, coverage sample2, bkgd_comp_cdf_dif, '
+            'peak_cmp_cdf_dif, max_cdf_dif.\n'
+        )
+
+        names1 = ['Peak_']*len(bed1)
+        idxs1 = range(1,len(bed1)+1)
+        peaknames1 = [n+str(i) for n,i in zip(names1, idxs1)]
+
+        with open(out1, 'w+') as outfile:
+            outfile.write(header)
+            for feat, name in zip(bed1, peaknames1):
+                l = feat.fields
+                outlist = l[0:3] + [name]+ [l[-1]] + l[3:-1]
+                outfile.write('\t'.join(outlist)+'\n')
+
+        names2 = ['Peak_']*len(bed2)
+        idxs2 = range(1,len(bed2)+1)
+        peaknames2 = [n+str(i) for n,i in zip(names2, idxs2)]
+
+        with open(out2, 'w+') as outfile:
+            outfile.write(header)
+            for feat, name in zip(bed2, peaknames2):
+                l = feat.fields
+                outlist = l[0:3] + [name]+ [l[-1]] + l[3:-1]
+                outfile.write('\t'.join(outlist)+'\n')
 
     end = time.time()
     print('Finished! Elapsed time:')
