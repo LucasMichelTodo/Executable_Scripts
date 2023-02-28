@@ -111,6 +111,18 @@ def plot_scores(score_vect, chroms, starts, stops, outfile):
                 ll = [chroms[i], starts[i], stops[i], score_vect[i]]
                 scorebed.write('\t'.join([str(x) for x in ll])+'\n')
 
+def add_peak_names_reorder_cols(bed, outname, header):
+    names = ['Peak_']*len(bed)
+    idxs = range(1,len(bed)+1)
+    peaknames = [n+str(i) for n,i in zip(names, idxs)]
+
+    with open(outname, 'w+') as outfile:
+        outfile.write(header)
+        for feat, name in zip(bed, peaknames):
+            l = feat.fields
+            outlist = l[0:3] + [name]+ [l[-1]] + l[3:-1]
+            outfile.write('\t'.join(outlist)+'\n')
+
 def input_parser(input_file):
     with open(input_file, 'r+') as infile:
         lines = [l.strip() for l in infile if len(l.strip()) > 0 and not l.startswith('#')]
@@ -383,30 +395,9 @@ def get_differential_peaks(input_file):
             'coverage sample1, coverage sample2, bkgd_comp_cdf_dif, '
             'peak_cmp_cdf_dif, max_cdf_dif.\n'
         )
-
-        ## Sample 1 vs 2
-        names1 = ['Peak_']*len(bed1)
-        idxs1 = range(1,len(bed1)+1)
-        peaknames1 = [n+str(i) for n,i in zip(names1, idxs1)]
-
-        with open(out1, 'w+') as outfile:
-            outfile.write(header)
-            for feat, name in zip(bed1, peaknames1):
-                l = feat.fields
-                outlist = l[0:3] + [name]+ [l[-1]] + l[3:-1]
-                outfile.write('\t'.join(outlist)+'\n')
-
-        ## Sample 2 vs 1
-        names2 = ['Peak_']*len(bed2)
-        idxs2 = range(1,len(bed2)+1)
-        peaknames2 = [n+str(i) for n,i in zip(names2, idxs2)]
-
-        with open(out2, 'w+') as outfile:
-            outfile.write(header)
-            for feat, name in zip(bed2, peaknames2):
-                l = feat.fields
-                outlist = l[0:3] + [name]+ [l[-1]] + l[3:-1]
-                outfile.write('\t'.join(outlist)+'\n')
+        add_peak_names_reorder_cols(bed1, out1, header)
+        add_peak_names_reorder_cols(bed2, out2, heade
+                                    )
 
     end = time.time()
     print('Finished! Elapsed time:')
