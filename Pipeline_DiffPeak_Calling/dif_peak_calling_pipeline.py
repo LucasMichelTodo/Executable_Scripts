@@ -395,9 +395,9 @@ def get_differential_peaks(input_file):
             'coverage sample1, coverage sample2, bkgd_comp_cdf_dif, '
             'peak_cmp_cdf_dif, max_cdf_dif.\n'
         )
+
         add_peak_names_reorder_cols(bed1, out1, header)
-        add_peak_names_reorder_cols(bed2, out2, heade
-                                    )
+        add_peak_names_reorder_cols(bed2, out2, header)
 
     end = time.time()
     print('Finished! Elapsed time:')
