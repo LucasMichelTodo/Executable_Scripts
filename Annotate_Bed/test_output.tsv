@@ -1,0 +1,20 @@
+#Bed_Chrom	Bed_Start	Bed_Stop	Gff_Chrom	Gff_Source	Gff_Feature	Gff_Start	Gff_Stop	Gff_Score	Gff_Strand	Gff_Frame	Annot_gene_id	Annot_Name	Annot_gene_ebi_biotype	Annot_description	Annot_ebi_biotype	Annot_ID	Annot_Parent	Annot_protein_source_id	Overlap
+Pf3D7_01_v3	25000	31100	Pf3D7_01_v3	VEuPathDB	protein_coding_gene	29510	37126	.	+	.	.	VAR	.	erythrocyte membrane protein 1%2C PfEMP1	protein_coding	PF3D7_0100100	.	.	1591
+Pf3D7_01_v3	25000	31100	Pf3D7_01_v3	VEuPathDB	mRNA	29510	37126	.	+	.	.	.	protein_coding	erythrocyte membrane protein 1%2C PfEMP1	.	PF3D7_0100100.1	PF3D7_0100100	.	1591
+Pf3D7_01_v3	25000	31100	Pf3D7_01_v3	VEuPathDB	exon	29510	34762	.	+	.	PF3D7_0100100	.	.	.	.	exon_PF3D7_0100100.1-E1	PF3D7_0100100.1	.	1591
+Pf3D7_01_v3	25000	31100	Pf3D7_01_v3	VEuPathDB	CDS	29510	34762	.	+	0	PF3D7_0100100	.	.	.	.	PF3D7_0100100.1-p1-CDS1	PF3D7_0100100.1	PF3D7_0100100.1-p1	1591
+Pf3D7_01_v3	32000	35100	Pf3D7_01_v3	VEuPathDB	protein_coding_gene	29510	37126	.	+	.	.	VAR	.	erythrocyte membrane protein 1%2C PfEMP1	protein_coding	PF3D7_0100100	.	.	3100
+Pf3D7_01_v3	32000	35100	Pf3D7_01_v3	VEuPathDB	mRNA	29510	37126	.	+	.	.	.	protein_coding	erythrocyte membrane protein 1%2C PfEMP1	.	PF3D7_0100100.1	PF3D7_0100100	.	3100
+Pf3D7_01_v3	32000	35100	Pf3D7_01_v3	VEuPathDB	exon	29510	34762	.	+	.	PF3D7_0100100	.	.	.	.	exon_PF3D7_0100100.1-E1	PF3D7_0100100.1	.	2762
+Pf3D7_01_v3	32000	35100	Pf3D7_01_v3	VEuPathDB	CDS	29510	34762	.	+	0	PF3D7_0100100	.	.	.	.	PF3D7_0100100.1-p1-CDS1	PF3D7_0100100.1	PF3D7_0100100.1-p1	2762
+Pf3D7_01_v3	40000	40100	Pf3D7_01_v3	VEuPathDB	protein_coding_gene	38982	40207	.	-	.	.	RIF	.	rifin	protein_coding	PF3D7_0100200	.	.	100
+Pf3D7_01_v3	40000	40100	Pf3D7_01_v3	VEuPathDB	mRNA	38982	40207	.	-	.	.	.	protein_coding	rifin	.	PF3D7_0100200.1	PF3D7_0100200	.	100
+Pf3D7_01_v3	40200	40350	Pf3D7_01_v3	VEuPathDB	protein_coding_gene	38982	40207	.	-	.	.	RIF	.	rifin	protein_coding	PF3D7_0100200	.	.	7
+Pf3D7_01_v3	40200	40350	Pf3D7_01_v3	VEuPathDB	mRNA	38982	40207	.	-	.	.	.	protein_coding	rifin	.	PF3D7_0100200.1	PF3D7_0100200	.	7
+Pf3D7_01_v3	40200	40350	Pf3D7_01_v3	VEuPathDB	exon	40154	40207	.	-	.	PF3D7_0100200	.	.	.	.	exon_PF3D7_0100200.1-E1	PF3D7_0100200.1	.	7
+Pf3D7_01_v3	40200	40350	Pf3D7_01_v3	VEuPathDB	CDS	40154	40207	.	-	0	PF3D7_0100200	.	.	.	.	PF3D7_0100200.1-p1-CDS1	PF3D7_0100200.1	PF3D7_0100200.1-p1	7
+Pf3D7_01_v3	40700	41500	.	.	.	-1	-1	.	.	.	.	.	.	.	.	.	.	.	0
+Pf3D7_01_v3	45000	48500	Pf3D7_01_v3	VEuPathDB	protein_coding_gene	42367	46507	.	-	.	.	VAR	.	erythrocyte membrane protein 1%2C PfEMP1	protein_coding	PF3D7_0100300	.	.	1507
+Pf3D7_01_v3	45000	48500	Pf3D7_01_v3	VEuPathDB	mRNA	42367	46507	.	-	.	.	.	protein_coding	erythrocyte membrane protein 1%2C PfEMP1	.	PF3D7_0100300.1	PF3D7_0100300	.	1507
+Pf3D7_01_v3	45000	48500	Pf3D7_01_v3	VEuPathDB	exon	43775	46507	.	-	.	PF3D7_0100300	.	.	.	.	exon_PF3D7_0100300.1-E1	PF3D7_0100300.1	.	1507
+Pf3D7_01_v3	45000	48500	Pf3D7_01_v3	VEuPathDB	CDS	43775	46507	.	-	0	PF3D7_0100300	.	.	.	.	PF3D7_0100300.1-p1-CDS1	PF3D7_0100300.1	PF3D7_0100300.1-p1	1507
